@@ -72,155 +72,11 @@ def inject_local_css(rel_path: str):
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 
-# background image
-
-from pathlib import Path
-import base64
-import streamlit as st
-
-def set_background(
-    image_path: str,
-    # overlay/tint (make alphas LOWER to reveal more image)
-    top_tint="rgba(255,247,237,0.55)",     # was 0.82 → more visible now
-    bottom_tint="rgba(255,255,255,0.78)",  # was 0.96 → more visible now
-    # image filters (make it “contrasty” or softer)
-    brightness=0.8,   # >1 brighter, <1 darker
-    contrast=2.18,     # >1 more contrast
-    saturate=1.12,     # >1 more color
-    blur_px=0.3,       # small blur keeps text readable (0 = none)
-    vignette=True      # subtle edge darkening for contrast
-):
-    p = Path(image_path)
-    if not p.exists():
-        st.error(f"Background image not found: {p}")
-        return
-    mime = "image/png" if p.suffix.lower() == ".png" else "image/jpeg"
-    encoded = base64.b64encode(p.read_bytes()).decode()
-    st.markdown("""
-<div class="hb-band">
-  <div class="hb-band-inner">
-    <div class="hb-band-title">GLUTEN FREE BAKERY</div>
-    <div class="hb-band-sub">Coeliac Australia Accredited</div>
-  </div>
-</div>
-<div class="hb-band-sep"></div>
-""", unsafe_allow_html=True)
-
-
-    st.markdown("""
-    <style>.stApp{background:transparent!important;}</style>
-    """, unsafe_allow_html=True)
-
-    # base image + filters
-    st.markdown(f"""
-    <style>
-      .stApp::before {{
-        content:"";
-        position:fixed; inset:0; z-index:-1; pointer-events:none;
-        background:
-          linear-gradient(180deg, {top_tint} 0%, {bottom_tint} 100%),
-          url("data:{mime};base64,{encoded}") center / cover no-repeat fixed;
-        filter: brightness({brightness}) contrast({contrast}) saturate({saturate}) blur({blur_px}px);
-      }}
-      {"/* vignette */ .stApp::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,.18) 100%);} " if vignette else ""}
-    </style>
-    """, unsafe_allow_html=True)
-
-def render_footer(
-    logo_path: str = "assets/footer-logo.jpg",      
-    college_logo_path: str  = "assets/win-logo.png"            
-):
-    """Static footer with left bakery logo, title, and optional right-side college logo."""
-    from pathlib import Path
-    from datetime import datetime
-    import base64
-
-    def _logo_img(path: str | None, alt: str, height_var: str = "--hb-footer-logo"):
-        if not path:
-            return ""
-        p = Path(path)
-        if not p.exists():
-            # also try relative to this file
-            p2 = (Path(__file__).parent / path).resolve()
-            p = p2 if p2.exists() else None
-        if not p or not p.exists():
-            return ""
-        mime = "image/png" if p.suffix.lower() == ".png" else "image/jpeg"
-        b64 = base64.b64encode(p.read_bytes()).decode()
-        return f'<img alt="{alt}" src="data:{mime};base64,{b64}" style="height:var({height_var});width:auto;border-radius:4px;" />'
-
-    left_logo_html  = _logo_img(logo_path, "Hudson’s Bakery")
-    right_logo_html = _logo_img(college_logo_path, "College")
-
-    year = datetime.now().year
-
-    st.markdown(
-        """
-        <style>
-          :root{
-            --hb-footer-font: 1.15rem;
-            --hb-footer-logo: 50px;
-            --hb-footer-pad: 16px 20px;
-            --hb-footer-gap: 12px;
-            --hb-footer-height: 64px;
-          }
-
-          /* ↓↓↓ Trim Streamlit's default huge bottom padding ↓↓↓ */
-          [data-testid="block-container"]{
-            padding-bottom: 0.75rem !important;
-          }
-          /* legacy fallback selector */
-          .block-container{
-            padding-bottom: 0.75rem !important;
-          }
-
-          /* Static footer (not sticky) */
-          .hb-footer{
-            position: fixed; bottom: 0; left: 0; right: 0;
-            width: 100%;
-            background: #ffffff;
-            border-top: 1px solid #e5e7eb;
-            padding: var(--hb-footer-pad);
-            margin-top: 24px;
-            z-index: 1000;
-            min-height: var(--hb-footer-height);
-          }
-          .hb-footer-inner{
-            max-width: 1200px; margin: 0 auto;
-            display: flex; align-items: center; gap: var(--hb-footer-gap);
-            font-size: var(--hb-footer-font); line-height: 1.6; color: #111827;
-          }
-          .hb-footer img{
-            height: var(--hb-footer-logo); width: auto; border-radius: 4px;
-          }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.markdown(f"""
-    <div class="hb-footer">
-      <div class="hb-footer-inner">
-        <div class="hb-left" style="margin-right:20px">
-          {left_logo_html}
-        </div>
-        <div class="hb-left" style="margin-right:20px; height:45px">
-          {right_logo_html}
-        </div>
-        <div style="margin-right:20px">Hudson’s Bakery — Real-Time Order Forecasting System</div>
-        <div style="margin-right:20px">|</div>
-        <div>A Collaborative Project with WIN, Sydney.</div>
-        <div style="margin-left:auto;">© {year}</div>
-        </div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-
 # logo
 from pathlib import Path
 import streamlit as st
 
-def hb_header(logo_path: str | None = None, title: str = "Hudson’s Bakery — Order Forecast Assistant", subtitle: str = "Real-time orders, forecasting & exports"):
+def hb_header(logo_path: str | None = None, title: str = "Hudson’s Bakery — Order Assistant", subtitle: str = "Real-time orders, forecasting & exports"):
 
     logo_html = ""
     if logo_path:
@@ -246,7 +102,7 @@ def hb_header(logo_path: str | None = None, title: str = "Hudson’s Bakery — 
     st.markdown(bar, unsafe_allow_html=True)
 
 #calling functions
-st.set_page_config(page_title="Real-Time Order Forecasting System", layout="wide")
+st.set_page_config(page_title="Real-Time Order Updating System", layout="wide")
 
 inject_local_css("../styles/hudsons_theme.css")
 # set_background(
@@ -266,27 +122,35 @@ hb_header("assets/hudsons_logo.png")
 
 
 # ----------------------------- Auth helpers 
+
+
+import streamlit as st
+
 def login_ui():
     from app.auth import authenticate_user, complete_password_reset
 
-    st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-    st.markdown('<div class="auth-headline">Sign in</div>', unsafe_allow_html=True)
-    st.markdown('<div class="auth-sub">Enter your credentials to continue.</div>', unsafe_allow_html=True)
-
     with st.form("login"):
-        u = st.text_input("Username")
-        p = st.text_input("Password", type="password")
-        ok = st.form_submit_button("Sign in")
-    if ok:
-        user = authenticate_user(u, p)
-        if user:
-            st.session_state["auth"] = user
-            st.session_state["role"] = (user.get("role") or "").lower()
-            st.success(f"Welcome, {user['username']}")
-            st.rerun()
-        else:
-            st.error("Invalid username or password.")
+       
+        st.markdown('<h2>Sign In</h2>', unsafe_allow_html=True)
+        st.markdown('<p class="hb-auth-sub">Enter your credentials to continue.</p>', unsafe_allow_html=True)
 
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        submit = st.form_submit_button("Sign in")
+
+        if submit:
+            user = authenticate_user(username, password)
+            if user:
+                st.session_state["auth"] = user
+                st.session_state["role"] = (user.get("role") or "").lower()
+                st.success(f"Welcome, {user['username']} 👋")
+                st.rerun()
+            else:
+                st.error("Invalid username or password.")
+
+        st.markdown('</div>', unsafe_allow_html=True)  # close card
+
+    # Forgot password outside the form
     with st.expander("Forgot password?"):
         st.caption("Ask an admin for a one-time code, then reset here.")
         with st.form("forgot"):
@@ -295,6 +159,7 @@ def login_ui():
             np1 = st.text_input("New password", type="password", key="np1")
             np2 = st.text_input("Confirm new password", type="password", key="np2")
             reset = st.form_submit_button("Reset password")
+
         if reset:
             if np1 != np2:
                 st.error("Passwords do not match.")
@@ -302,168 +167,36 @@ def login_ui():
                 st.error("Choose a longer password (min 6 chars).")
             else:
                 if complete_password_reset(fu, fc, np1):
-                    st.success("Password updated. You can sign in now.")
+                    st.success("Password updated ✅ You can sign in now.")
                 else:
                     st.error("Invalid or expired code / username.")
-                    
-    st.markdown('</div>', unsafe_allow_html=True)
 
-def signup_ui():
-   
-    from app.auth import create_user, authenticate_user
-    import sqlite3
-
-    st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-    st.markdown('<div class="auth-headline">Create your account</div>', unsafe_allow_html=True)
-    st.markdown('<div class="auth-sub">Choose a username and a strong password (6+ characters).</div>', unsafe_allow_html=True)
-
-    with st.form("signup"):
-        su = st.text_input("Username").strip().lower()
-        sp1 = st.text_input("Password", type="password")
-        sp2 = st.text_input("Confirm password", type="password")
-        agree = st.checkbox("I understand an account lets me access this app.")
-        create = st.form_submit_button("Sign up")
-
-    if create:
-        # Basic validations
-        if not su or not sp1 or not sp2:
-            st.error("Please fill all fields.")
-        elif len(sp1) < 6:
-            st.error("Password must be at least 6 characters.")
-        elif sp1 != sp2:
-            st.error("Passwords do not match.")
-        elif not agree:
-            st.error("Please confirm the checkbox.")
-        else:
-            try:
-                _ = create_user(su, sp1, "user")  # default role = 'user'
-                st.success("Account created successfully. Signing you in…")
-                user = authenticate_user(su, sp1)
-                if user:
-                    st.session_state["auth"] = user
-                    st.session_state["role"] = (user.get("role") or "").lower()
-                    st.rerun()
-                else:
-                    st.info("Please go to the **Sign in** tab and log in.")
-            except sqlite3.IntegrityError:
-                st.error("That username is already taken. Try another.")
-            except Exception as e:
-                st.error(f"Could not create account: {e}")
-
-    st.markdown('</div>', unsafe_allow_html=True)
 
 def auth_landing():
     """
-    Tabbed entry point for not-yet-authenticated users.
+    Landing page for unauthenticated users.
+    Only sign in form shown, centered.
     """
-    tabs = st.tabs(["🔐 Sign in", "🆕 Sign up"])
-    with tabs[0]:
+    L, C, R = st.columns([1, 1.2, 1])
+    with C:
         login_ui()
-    with tabs[1]:
-        signup_ui()
 
-def render_navbar_native():
-    """Simple Streamlit-native navbar with a top-right Sign In button."""
-    with st.container():
-        cols = st.columns([3, 2, 1])  # left / spacer / right
-        with cols[2]:
-            # If not signed in, show Sign In button; otherwise a no-op placeholder
-            if not st.session_state.get("auth"):
-                if st.button("🔐 Sign In", use_container_width=True):
-                    st.session_state["page"] = "signin"
-                    st.rerun()
-            else:
-                st.empty()
-
-def landing_page():
-    """Landing page shown before authentication."""
-    render_navbar_native()
-
-    st.title("About Hudson’s Bakery")
-    st.subheader(
-        "Hudson’s Bakery is proudly Coeliac Australia Accredited, serving gluten-free "
-        "breads, pastries, and sweet treats baked fresh daily in Bondi Junction."
-    )
-
-    st.markdown("---")
-    st.header("About this application")
-    st.subheader(
-        "This tool helps Hudson’s Bakery streamline weekly orders using recent sales, "
-        "weather and events, with optional ML-assisted forecasts. You can upload sales, "
-        "configure events/weather, preview recommendations, and export ready-to-send order sheets."
-    )
-
-    st.markdown("---")
-    st.header("Meet the team")
-
-# left | sep | mid | sep | right
-    left, sep1, mid, sep2, right = st.columns([1, 0.3, 1, 0.3, 1])
-
-    def vrule(height="8rem"):
-        # tweak height to match your content
-        st.markdown(
-            f"<div style='height:{height};border-left:1px solid #e5e7eb;margin:0 auto;'></div>",
-            unsafe_allow_html=True
-        )
-
-    with left:
-        st.markdown("**Manish Chaudhary**  \nTeam Lead & Data Analyst")
-        st.markdown("**Rabin Pokhrel**  \nData Engineer")
-
-    with sep1:
-        vrule("8rem")
-
-    with mid:
-        st.markdown("**Rabin Shiwakoti**  \nExternal Data Integration")
-        st.markdown("**Utsabh Thapaliya**  \nLocal Events Integration")
-
-    with sep2:
-        vrule("8rem")
-
-    with right:
-        st.markdown("**Ashok Pandey**  \nPerformance Analysis & ML Training")
-        st.markdown("**Enosh Basnet**  \nUI/DB Integration & Coordination")
-    st.markdown("---")
-    st.info("Ready to proceed? Click **Sign In** (top-right) to access the app.")
 
 # ----------------------------- Auth gate -----------------------------
-# ----------------------------- Router: landing vs signin vs app -----------------------------
+
 if "auth" not in st.session_state:
     st.session_state["auth"] = None
 if "role" not in st.session_state:
     st.session_state["role"] = ""
-if "page" not in st.session_state:
-    # default to landing for unauthenticated users
-    st.session_state["page"] = "landing" if not st.session_state["auth"] else "app"
 
-# If not authenticated, decide which unauthenticated page to show
 if not st.session_state["auth"]:
-    page = st.session_state.get("page", "landing")
-    if page == "landing":
-        landing_page()
-        render_footer(
-    logo_path="assets/footer-logo.jpg",
-    college_logo_path="assets/win-logo.png" 
-    )   
-        st.stop()
-    elif page == "signin":
-        # render the existing Sign In / Sign Up UI centered
-        L, C, R = st.columns([1, 1.15, 1])
-        with C:
-            st.markdown('<div class="tabs-wrap">', unsafe_allow_html=True)
-            tab1, tab2 = st.tabs(["🔐 Sign in", "🆕 Sign up"])
-            with tab1:
-                st.markdown('<div class="auth-shell">', unsafe_allow_html=True)
-                login_ui()
-                st.markdown('</div>', unsafe_allow_html=True)
-            with tab2:
-                st.markdown('<div class="auth-shell">', unsafe_allow_html=True)
-                signup_ui()
-                st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-         
-        st.stop()
-# else: continue into the authenticated app (unchanged below)
+    auth_landing()
+    st.stop()
+
+# Sidebar info once logged in
+user = st.session_state["auth"]
+st.sidebar.markdown(f"**Signed in as:** {user['username']} ({user.get('role','')})")
+
 
 
 def logout_ui():
@@ -475,7 +208,7 @@ def logout_ui():
 logout_ui()
 
 # (Moved below auth so it doesn't show on the auth screen)
-st.title("Real-Time Order Forecasting System")
+st.title("Real-Time Order Updating System")
 
 # ----------------------------- Tabs -----------------------------
 # Helper to read the current role from the session (set by login)
@@ -983,5 +716,3 @@ elif TAB == "Admin":
         trained = sum(1 for r in results if getattr(r, "saved", False))
         st.success(f"Trained/updated models for {trained} items.")
 
-
-render_footer(logo_path="assets/footer-logo.jpg", college_logo_path="assets/win-logo.png")
