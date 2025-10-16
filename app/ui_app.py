@@ -49,6 +49,8 @@ from app.services.holiday_service import (
 from pathlib import Path
 import streamlit as st
 
+
+
 def inject_local_css(rel_path: str):
     base = Path(__file__).parent
     css_path = (base / rel_path).resolve()
@@ -72,11 +74,162 @@ def inject_local_css(rel_path: str):
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 
+
+
+# background image
+
+from pathlib import Path
+import base64
+import streamlit as st
+
+def set_background(
+    image_path: str,
+    # overlay/tint (make alphas LOWER to reveal more image)
+    top_tint="rgba(255,247,237,0.55)",     # was 0.82 → more visible now
+    bottom_tint="rgba(255,255,255,0.78)",  # was 0.96 → more visible now
+    # image filters (make it “contrasty” or softer)
+    brightness=0.8,   # >1 brighter, <1 darker
+    contrast=2.18,     # >1 more contrast
+    saturate=1.12,     # >1 more color
+    blur_px=0.3,       # small blur keeps text readable (0 = none)
+    vignette=True      # subtle edge darkening for contrast
+):
+    p = Path(image_path)
+    if not p.exists():
+        st.error(f"Background image not found: {p}")
+        return
+    mime = "image/png" if p.suffix.lower() == ".png" else "image/jpeg"
+    encoded = base64.b64encode(p.read_bytes()).decode()
+    st.markdown("""
+<div class="hb-band">
+  <div class="hb-band-inner">
+    <div class="hb-band-title">GLUTEN FREE BAKERY</div>
+    <div class="hb-band-sub">Coeliac Australia Accredited</div>
+  </div>
+</div>
+<div class="hb-band-sep"></div>
+""", unsafe_allow_html=True)
+
+
+    st.markdown("""
+    <style>.stApp{background:transparent!important;}</style>
+    """, unsafe_allow_html=True)
+
+    # base image + filters
+    st.markdown(f"""
+    <style>
+      .stApp::before {{
+        content:"";
+        position:fixed; inset:0; z-index:-1; pointer-events:none;
+        background:
+          linear-gradient(180deg, {top_tint} 0%, {bottom_tint} 100%),
+          url("data:{mime};base64,{encoded}") center / cover no-repeat fixed;
+        filter: brightness({brightness}) contrast({contrast}) saturate({saturate}) blur({blur_px}px);
+      }}
+      {"/* vignette */ .stApp::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,.18) 100%);} " if vignette else ""}
+    </style>
+    """, unsafe_allow_html=True)
+
+def render_footer(
+    logo_path: str = "assets/footer-logo.jpg",      
+    college_logo_path: str  = "assets/win-logo.png",            
+    readygrad_logo_path: str  = "assets/readygrad.jpg"            
+):
+    """Static footer with left bakery logo, title, center readygrad logo and  right-side college logo."""
+    from pathlib import Path
+    from datetime import datetime
+    import base64
+
+    def _logo_img(path: str | None, alt: str, height_var: str = "--hb-footer-logo"):
+        if not path:
+            return ""
+        p = Path(path)
+        if not p.exists():
+            # also try relative to this file
+            p2 = (Path(__file__).parent / path).resolve()
+            p = p2 if p2.exists() else None
+        if not p or not p.exists():
+            return ""
+        mime = "image/png" if p.suffix.lower() == ".png" else "image/jpeg"
+        b64 = base64.b64encode(p.read_bytes()).decode()
+        return f'<img alt="{alt}" src="data:{mime};base64,{b64}" style="height:var({height_var});width:auto;border-radius:4px;" />'
+
+    left_logo_html  = _logo_img(logo_path, "Hudson’s Bakery")
+    center_logo  = _logo_img(readygrad_logo_path, "readygrad")
+    right_logo_html = _logo_img(college_logo_path, "College")
+
+    year = datetime.now().year
+
+    st.markdown(
+        """
+        <style>
+          :root{
+            --hb-footer-font: 1.15rem;
+            --hb-footer-logo: 50px;
+            --hb-footer-pad: 16px 20px;
+            --hb-footer-gap: 12px;
+            --hb-footer-height: 64px;
+          }
+
+          /* ↓↓↓ Trim Streamlit's default huge bottom padding ↓↓↓ */
+          [data-testid="block-container"]{
+            padding-bottom: 0.75rem !important;
+          }
+          /* legacy fallback selector */
+          .block-container{
+            padding-bottom: 0.75rem !important;
+          }
+
+          /* Static footer (not sticky) */
+          .hb-footer{
+            position: fixed; bottom: 0; left: 0; right: 0;
+            width: 100%;
+            background: #ffffff;
+            border-top: 1px solid #e5e7eb;
+            padding: var(--hb-footer-pad);
+            margin-top: 24px;
+            z-index: 1000;
+            min-height: var(--hb-footer-height);
+          }
+          .hb-footer-inner{
+            max-width: 1500px; margin: 0 auto;
+            display: flex; align-items: center; gap: var(--hb-footer-gap);
+            font-size: var(--hb-footer-font); line-height: 1.6; color: #111827;
+          }
+          .hb-footer img{
+            height: var(--hb-footer-logo); width: auto; border-radius: 4px;
+          }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(f"""
+    <div class="hb-footer">
+      <div class="hb-footer-inner">
+        <div class="hb-left" style="margin-right:20px">
+          {left_logo_html}
+        </div>
+        <div class="hb-left" style="margin-right:20px; height:45px">
+          {center_logo}
+        </div>
+        <div class="hb-left" style="margin-right:20px; height:45px">
+          {right_logo_html}
+        </div>
+        <div style="margin-right:20px">Hudson’s Bakery — Real-Time Order Forecasting System</div>
+        <div style="margin-right:20px">|</div>
+        <div>A Collaborative Project with WIN Sydney and Readygrad.</div>
+        <div style="margin-left:auto;">© {year}</div>
+        </div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
 # logo
 from pathlib import Path
 import streamlit as st
 
-def hb_header(logo_path: str | None = None, title: str = "Hudson’s Bakery — Order Assistant", subtitle: str = "Real-time orders, forecasting & exports"):
+def hb_header(logo_path: str | None = None, title: str = "Hudson Forecast", subtitle: str = "Baking Tomorrow’s Success, Today."):
 
     logo_html = ""
     if logo_path:
@@ -102,7 +255,7 @@ def hb_header(logo_path: str | None = None, title: str = "Hudson’s Bakery — 
     st.markdown(bar, unsafe_allow_html=True)
 
 #calling functions
-st.set_page_config(page_title="Real-Time Order Updating System", layout="wide")
+st.set_page_config(page_title="Real-Time Order Forecasting System", layout="wide")
 
 inject_local_css("../styles/hudsons_theme.css")
 # set_background(
@@ -167,7 +320,7 @@ def login_ui():
                 st.error("Choose a longer password (min 6 chars).")
             else:
                 if complete_password_reset(fu, fc, np1):
-                    st.success("Password updated ✅ You can sign in now.")
+                    st.success("Password updated! You can sign in now.")
                 else:
                     st.error("Invalid or expired code / username.")
 
@@ -181,6 +334,82 @@ def auth_landing():
     with C:
         login_ui()
 
+#creating a simple navbar
+def render_navbar_native():
+    """Simple Streamlit-native navbar with a top-right Sign In button."""
+    with st.container():
+        cols = st.columns([3, 2, 1])  # left / spacer / right
+        with cols[2]:
+            # If not signed in, show Sign In button; otherwise a no-op placeholder
+            if not st.session_state.get("auth"):
+                if st.button("Sign In", use_container_width=True):
+                    st.session_state["page"] = "signin"
+                    st.rerun()
+            else:
+                st.empty()
+
+#creating a simple landing page
+
+def landing_page():
+    """Landing page shown before authentication."""
+    render_navbar_native()
+
+    st.title("About Hudson’s Bakery")
+    st.subheader(
+        "Hudson’s Bakery is proudly Coeliac Australia Accredited, serving gluten-free "
+        "breads, pastries, and sweet treats baked fresh daily in Bondi Junction."
+    )
+
+    st.markdown("---")
+    st.header("About this application")
+    st.subheader(
+        "This tool helps Hudson’s Bakery streamline weekly orders using recent sales, "
+        "weather and events, with optional ML-assisted forecasts. You can upload sales, "
+        "configure events/weather, preview recommendations, and export ready-to-send order sheets."
+    )
+
+    st.markdown("---")
+    st.header("Meet the Team")
+
+# left | sep | mid | sep | right
+    left, sep1, mid, sep2, right = st.columns([1, 0.3, 1, 0.3, 1])
+
+    def vrule(height="14rem"):
+        # tweak height to match image height
+        st.markdown(
+            f"<div style='height:{height};border-left:1px solid #e5e7eb;margin:0 auto;'></div>",
+            unsafe_allow_html=True
+        )
+
+    with left:
+        st.image("assets/team/manish.jpg", width=120)
+        st.markdown("**Manish Chaudhary**")
+        st.image("assets/team/rabin_p.jpg", width=120)
+        st.markdown("**Rabin Pokhrel**")
+
+    with sep1:
+        vrule("20rem")
+
+    with mid:
+        st.image("assets/team/rabin_s.jpg", width=120)
+        st.markdown("**Rabin Shiwakoti**")
+        st.image("assets/team/uttsab.jpg", width=120)
+        st.markdown("**Uttsab Thapaliya**")
+
+    with sep2:
+        vrule("20rem")
+
+    with right:
+        st.image("assets/team/ashok.jpg", width=120)
+        st.markdown("**Ashok Pandey** ")
+        st.image("assets/team/enosh.jpg", width=120)
+        st.markdown("**Enosh Basnet**")
+
+    st.markdown("---")
+
+    st.info("Ready to proceed? Click **Sign In** (top-right) to access the app.")
+    st.markdown("---")
+
 
 # ----------------------------- Auth gate -----------------------------
 
@@ -188,14 +417,31 @@ if "auth" not in st.session_state:
     st.session_state["auth"] = None
 if "role" not in st.session_state:
     st.session_state["role"] = ""
+if "page" not in st.session_state:
+    # default to landing for unauthenticated users
+    st.session_state["page"] = "landing" if not st.session_state["auth"] else "app"
 
+# If not authenticated, decide which unauthenticated page to show
 if not st.session_state["auth"]:
-    auth_landing()
-    st.stop()
+    page = st.session_state.get("page", "landing")
+    if page == "landing":
+        landing_page()
+        render_footer(
+    logo_path="assets/footer-logo.jpg",
+    college_logo_path="assets/win-logo.png" 
+    )   
+        st.stop()
+    elif page == "signin":
+        # render the existing Sign In / Sign Up UI centered
+        
+            auth_landing()
+            st.stop()
 
 # Sidebar info once logged in
 user = st.session_state["auth"]
 st.sidebar.markdown(f"**Signed in as:** {user['username']} ({user.get('role','')})")
+
+# else: continue into the authenticated app (unchanged below)
 
 
 
@@ -208,7 +454,7 @@ def logout_ui():
 logout_ui()
 
 # (Moved below auth so it doesn't show on the auth screen)
-st.title("Real-Time Order Updating System")
+st.title("Real-Time Order Forecasting System")
 
 # ----------------------------- Tabs -----------------------------
 # Helper to read the current role from the session (set by login)
@@ -327,13 +573,15 @@ if TAB == "Upload":
                 results = train_models_for_all_items(min_samples=10)
             trained = sum(1 for r in results if r.saved)
             st.info(f"Accuracy improved for {trained} items based on your latest upload.")
+            st.markdown("---")
 
         # Always clean up the temp file at the end
         tmp.unlink(missing_ok=True)
 
+
 # ----------------------------- Configure -----------------------------
 elif TAB == "Configure":
-    st.subheader("Real-Time Order Updating System")
+    st.subheader("Real-Time Order Forecasting System")
 
     # ---------- Manual Events (optional) ----------
     st.markdown("### Events (optional)")
@@ -393,8 +641,11 @@ elif TAB == "Configure":
         ).fetchone()
 
     # ---------- Action buttons ----------
-    col1, col2 = st.columns(2)
+    
+    col1, col2, col3 = st.columns(3)
     with col1:
+        col1.metric("Weather rows", w_rows or 0)
+        col1.caption(f"{w_min or 'n/a'} to {w_max or 'n/a'}")
         from app.services.weather_service import GeoPoint, upsert_weather_forecast_to_db
         BAKERY_LOC = GeoPoint(-33.8688, 151.2093)  # TODO: set your bakery lat/lon once
 
@@ -407,6 +658,8 @@ elif TAB == "Configure":
                 st.error(f"Weather update failed: {e}")
 
     with col2:
+        col2.metric("Event rows", e_rows or 0)
+        col2.caption(f"{e_min or 'n/a'} to {e_max or 'n/a'}")
         from app.services.holiday_service import HolidayScope, upsert_holidays_to_db
         if st.button("Holidays: refresh upcoming (next 90 days)"):
             try:
@@ -418,6 +671,11 @@ elif TAB == "Configure":
                 st.rerun()
             except Exception as e:
                 st.error(f"Holiday update failed: {e}")
+    if next_evt:
+        col3.write(f"Next event: {next_evt[0]} - {next_evt[1]} ({next_evt[2] or 'type n/a'})")
+    else:
+        col3.write("Next event: none scheduled")
+    st.markdown("---")
 
 # ----------------------------- Preview -----------------------------
 elif TAB == "Preview":
@@ -456,6 +714,8 @@ elif TAB == "Preview":
             st.session_state["latest_forecast"] = df
             # optional: once used, clear the flag so they must upload again
             st.session_state["uploaded_this_session"] = False
+        st.markdown("---")
+
 
 # ----------------------------- Download -----------------------------
 elif TAB == "Download":
@@ -564,7 +824,8 @@ elif TAB == "Download":
                     with st.spinner("Sending…"):
                         ok = _send_email_with_attachment(to_list, cc_list, bcc_list)
                     if ok:
-                        st.success("Email sent ✅")
+                        st.success("Email sent!")
+            st.markdown("---")
 
 # ----------------------------- History -----------------------------
 elif TAB == "History":
@@ -715,4 +976,8 @@ elif TAB == "Admin":
             results = train_models_for_all_items(min_samples=10)
         trained = sum(1 for r in results if getattr(r, "saved", False))
         st.success(f"Trained/updated models for {trained} items.")
+st.markdown("---")
+        
 
+
+render_footer(logo_path="assets/footer-logo.jpg", college_logo_path="assets/win-logo.png")

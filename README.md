@@ -29,33 +29,6 @@ Built for Hudson’s Bakery (Bondi Junction) as part of a capstone project.
 
 ---
 
-## 📂 Project Structure
-
-```
-real-time-orders-main/
-├─ app/
-│  ├─ ui_app.py             # Streamlit front-end
-│  ├─ pipeline.py           # Ingestion → forecast → export workflow
-│  ├─ model_train.py        # Per-item ML training & prediction
-│  ├─ validate.py           # File schema checks & Square “wide” → tidy
-│  ├─ db.py                 # SQLite schema, migrations, item aliasing
-│  ├─ auth.py               # User login, roles, OTP reset
-│  ├─ services/
-│  │  ├─ weather_service.py # Meteostat + Open-Meteo forecast
-│  │  └─ holiday_service.py # AU/NSW holidays & manual events
-│  └─ tools/                # Admin helpers
-├─ data/
-│  ├─ active/               # Current upload (sales.xlsx)
-│  └─ archive/              # Archived uploads
-├─ outputs/                 # Forecast Excel files & DB backups
-├─ create_admin.py          # Bootstrap first admin user
-├─ train_models.py          # Train/retrain all item models
-├─ requirements.txt         # Python dependencies
-└─ pyproject.toml           # Alt. dependency definition
-```
-
----
-
 ## ⚙️ Installation
 
 Clone the repo:
@@ -64,7 +37,6 @@ Clone the repo:
 git clone https://github.com/manishkc11/real-time-orders.git
 cd real-time-orders-main
 ```
-
 
 Install dependencies:
 
@@ -75,24 +47,27 @@ pip install -e .
 ```
 
 ---
+
 Initialize the database (one-time)
+
 ```bash
- 
+
 python -m app.migrations_add_otp
 ```
-
 
 ## ▶️ Usage
 
 1. **Create the first admin user** (only once):
+
    ```bash
    python create_admin.py
    ```
 
 2. **Run the app**:
+
    ```bash
     .\.venv\Scripts\Activate.ps1
-   streamlit run app/ui_app.py 
+   streamlit run app/ui_app.py
    ```
 
 3. **Login** with your admin account.
@@ -116,7 +91,7 @@ python -m app.migrations_add_otp
 - Models are stored in the SQLite DB.
 - Retrain via:
   - Admin → “Improve accuracy”
-  - or CLI:  
+  - or CLI:
     ```bash
     python train_models.py
     ```
@@ -140,7 +115,7 @@ For commercial use, please contact the authors.
 
 ## 👥 Contributors
 
-- Enosh Basnet 
+- Enosh Basnet
 - Rabin Pokhrel
 - Rabin Shiwakoti
 - Manish Chaudhary
