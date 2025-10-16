@@ -49,6 +49,8 @@ from app.services.holiday_service import (
 from pathlib import Path
 import streamlit as st
 
+
+
 def inject_local_css(rel_path: str):
     base = Path(__file__).parent
     css_path = (base / rel_path).resolve()
@@ -70,6 +72,8 @@ def inject_local_css(rel_path: str):
               .replace("\u201d", '"'))
 
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
+
 
 
 # background image
@@ -128,9 +132,10 @@ def set_background(
 
 def render_footer(
     logo_path: str = "assets/footer-logo.jpg",      
-    college_logo_path: str  = "assets/win-logo.png"            
+    college_logo_path: str  = "assets/win-logo.png",            
+    readygrad_logo_path: str  = "assets/readygrad.jpg"            
 ):
-    """Static footer with left bakery logo, title, and optional right-side college logo."""
+    """Static footer with left bakery logo, title, center readygrad logo and  right-side college logo."""
     from pathlib import Path
     from datetime import datetime
     import base64
@@ -150,6 +155,7 @@ def render_footer(
         return f'<img alt="{alt}" src="data:{mime};base64,{b64}" style="height:var({height_var});width:auto;border-radius:4px;" />'
 
     left_logo_html  = _logo_img(logo_path, "Hudson’s Bakery")
+    center_logo  = _logo_img(readygrad_logo_path, "readygrad")
     right_logo_html = _logo_img(college_logo_path, "College")
 
     year = datetime.now().year
@@ -186,7 +192,7 @@ def render_footer(
             min-height: var(--hb-footer-height);
           }
           .hb-footer-inner{
-            max-width: 1200px; margin: 0 auto;
+            max-width: 1500px; margin: 0 auto;
             display: flex; align-items: center; gap: var(--hb-footer-gap);
             font-size: var(--hb-footer-font); line-height: 1.6; color: #111827;
           }
@@ -204,11 +210,14 @@ def render_footer(
           {left_logo_html}
         </div>
         <div class="hb-left" style="margin-right:20px; height:45px">
+          {center_logo}
+        </div>
+        <div class="hb-left" style="margin-right:20px; height:45px">
           {right_logo_html}
         </div>
         <div style="margin-right:20px">Hudson’s Bakery — Real-Time Order Forecasting System</div>
         <div style="margin-right:20px">|</div>
-        <div>A Collaborative Project with WIN, Sydney.</div>
+        <div>A Collaborative Project with WIN Sydney and Readygrad.</div>
         <div style="margin-left:auto;">© {year}</div>
         </div>
       </div>
@@ -220,7 +229,7 @@ def render_footer(
 from pathlib import Path
 import streamlit as st
 
-def hb_header(logo_path: str | None = None, title: str = "Hudson’s Bakery — Order Forecast Assistant", subtitle: str = "Real-time orders, forecasting & exports"):
+def hb_header(logo_path: str | None = None, title: str = "Hudson Forecast", subtitle: str = "Baking Tomorrow’s Success, Today."):
 
     logo_html = ""
     if logo_path:
@@ -266,27 +275,35 @@ hb_header("assets/hudsons_logo.png")
 
 
 # ----------------------------- Auth helpers 
+
+
+import streamlit as st
+
 def login_ui():
     from app.auth import authenticate_user, complete_password_reset
 
-    st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-    st.markdown('<div class="auth-headline">Sign in</div>', unsafe_allow_html=True)
-    st.markdown('<div class="auth-sub">Enter your credentials to continue.</div>', unsafe_allow_html=True)
-
     with st.form("login"):
-        u = st.text_input("Username")
-        p = st.text_input("Password", type="password")
-        ok = st.form_submit_button("Sign in")
-    if ok:
-        user = authenticate_user(u, p)
-        if user:
-            st.session_state["auth"] = user
-            st.session_state["role"] = (user.get("role") or "").lower()
-            st.success(f"Welcome, {user['username']}")
-            st.rerun()
-        else:
-            st.error("Invalid username or password.")
+       
+        st.markdown('<h2>Sign In</h2>', unsafe_allow_html=True)
+        st.markdown('<p class="hb-auth-sub">Enter your credentials to continue.</p>', unsafe_allow_html=True)
 
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        submit = st.form_submit_button("Sign in")
+
+        if submit:
+            user = authenticate_user(username, password)
+            if user:
+                st.session_state["auth"] = user
+                st.session_state["role"] = (user.get("role") or "").lower()
+                st.success(f"Welcome, {user['username']} 👋")
+                st.rerun()
+            else:
+                st.error("Invalid username or password.")
+
+        st.markdown('</div>', unsafe_allow_html=True)  # close card
+
+    # Forgot password outside the form
     with st.expander("Forgot password?"):
         st.caption("Ask an admin for a one-time code, then reset here.")
         with st.form("forgot"):
@@ -295,6 +312,7 @@ def login_ui():
             np1 = st.text_input("New password", type="password", key="np1")
             np2 = st.text_input("Confirm new password", type="password", key="np2")
             reset = st.form_submit_button("Reset password")
+
         if reset:
             if np1 != np2:
                 st.error("Passwords do not match.")
@@ -302,66 +320,21 @@ def login_ui():
                 st.error("Choose a longer password (min 6 chars).")
             else:
                 if complete_password_reset(fu, fc, np1):
-                    st.success("Password updated. You can sign in now.")
+                    st.success("Password updated! You can sign in now.")
                 else:
                     st.error("Invalid or expired code / username.")
-                    
-    st.markdown('</div>', unsafe_allow_html=True)
 
-def signup_ui():
-   
-    from app.auth import create_user, authenticate_user
-    import sqlite3
-
-    st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-    st.markdown('<div class="auth-headline">Create your account</div>', unsafe_allow_html=True)
-    st.markdown('<div class="auth-sub">Choose a username and a strong password (6+ characters).</div>', unsafe_allow_html=True)
-
-    with st.form("signup"):
-        su = st.text_input("Username").strip().lower()
-        sp1 = st.text_input("Password", type="password")
-        sp2 = st.text_input("Confirm password", type="password")
-        agree = st.checkbox("I understand an account lets me access this app.")
-        create = st.form_submit_button("Sign up")
-
-    if create:
-        # Basic validations
-        if not su or not sp1 or not sp2:
-            st.error("Please fill all fields.")
-        elif len(sp1) < 6:
-            st.error("Password must be at least 6 characters.")
-        elif sp1 != sp2:
-            st.error("Passwords do not match.")
-        elif not agree:
-            st.error("Please confirm the checkbox.")
-        else:
-            try:
-                _ = create_user(su, sp1, "user")  # default role = 'user'
-                st.success("Account created successfully. Signing you in…")
-                user = authenticate_user(su, sp1)
-                if user:
-                    st.session_state["auth"] = user
-                    st.session_state["role"] = (user.get("role") or "").lower()
-                    st.rerun()
-                else:
-                    st.info("Please go to the **Sign in** tab and log in.")
-            except sqlite3.IntegrityError:
-                st.error("That username is already taken. Try another.")
-            except Exception as e:
-                st.error(f"Could not create account: {e}")
-
-    st.markdown('</div>', unsafe_allow_html=True)
 
 def auth_landing():
     """
-    Tabbed entry point for not-yet-authenticated users.
+    Landing page for unauthenticated users.
+    Only sign in form shown, centered.
     """
-    tabs = st.tabs(["🔐 Sign in", "🆕 Sign up"])
-    with tabs[0]:
+    L, C, R = st.columns([1, 1.2, 1])
+    with C:
         login_ui()
-    with tabs[1]:
-        signup_ui()
 
+#creating a simple navbar
 def render_navbar_native():
     """Simple Streamlit-native navbar with a top-right Sign In button."""
     with st.container():
@@ -369,11 +342,13 @@ def render_navbar_native():
         with cols[2]:
             # If not signed in, show Sign In button; otherwise a no-op placeholder
             if not st.session_state.get("auth"):
-                if st.button("🔐 Sign In", use_container_width=True):
+                if st.button("Sign In", use_container_width=True):
                     st.session_state["page"] = "signin"
                     st.rerun()
             else:
                 st.empty()
+
+#creating a simple landing page
 
 def landing_page():
     """Landing page shown before authentication."""
@@ -394,41 +369,50 @@ def landing_page():
     )
 
     st.markdown("---")
-    st.header("Meet the team")
+    st.header("Meet the Team")
 
 # left | sep | mid | sep | right
     left, sep1, mid, sep2, right = st.columns([1, 0.3, 1, 0.3, 1])
 
-    def vrule(height="8rem"):
-        # tweak height to match your content
+    def vrule(height="14rem"):
+        # tweak height to match image height
         st.markdown(
             f"<div style='height:{height};border-left:1px solid #e5e7eb;margin:0 auto;'></div>",
             unsafe_allow_html=True
         )
 
     with left:
-        st.markdown("**Manish Chaudhary**  \nTeam Lead & Data Analyst")
-        st.markdown("**Rabin Pokhrel**  \nData Engineer")
+        st.image("assets/team/manish.jpg", width=120)
+        st.markdown("**Manish Chaudhary**")
+        st.image("assets/team/rabin_p.jpg", width=120)
+        st.markdown("**Rabin Pokhrel**")
 
     with sep1:
-        vrule("8rem")
+        vrule("20rem")
 
     with mid:
-        st.markdown("**Rabin Shiwakoti**  \nExternal Data Integration")
-        st.markdown("**Utsabh Thapaliya**  \nLocal Events Integration")
+        st.image("assets/team/rabin_s.jpg", width=120)
+        st.markdown("**Rabin Shiwakoti**")
+        st.image("assets/team/uttsab.jpg", width=120)
+        st.markdown("**Uttsab Thapaliya**")
 
     with sep2:
-        vrule("8rem")
+        vrule("20rem")
 
     with right:
-        st.markdown("**Ashok Pandey**  \nPerformance Analysis & ML Training")
-        st.markdown("**Enosh Basnet**  \nUI/DB Integration & Coordination")
+        st.image("assets/team/ashok.jpg", width=120)
+        st.markdown("**Ashok Pandey** ")
+        st.image("assets/team/enosh.jpg", width=120)
+        st.markdown("**Enosh Basnet**")
+
     st.markdown("---")
+
     st.info("Ready to proceed? Click **Sign In** (top-right) to access the app.")
     st.markdown("---")
 
+
 # ----------------------------- Auth gate -----------------------------
-# ----------------------------- Router: landing vs signin vs app -----------------------------
+
 if "auth" not in st.session_state:
     st.session_state["auth"] = None
 if "role" not in st.session_state:
@@ -449,22 +433,16 @@ if not st.session_state["auth"]:
         st.stop()
     elif page == "signin":
         # render the existing Sign In / Sign Up UI centered
-        L, C, R = st.columns([1, 1.15, 1])
-        with C:
-            st.markdown('<div class="tabs-wrap">', unsafe_allow_html=True)
-            tab1, tab2 = st.tabs(["🔐 Sign in", "🆕 Sign up"])
-            with tab1:
-                st.markdown('<div class="auth-shell">', unsafe_allow_html=True)
-                login_ui()
-                st.markdown('</div>', unsafe_allow_html=True)
-            with tab2:
-                st.markdown('<div class="auth-shell">', unsafe_allow_html=True)
-                signup_ui()
-                st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-         
-        st.stop()
+        
+            auth_landing()
+            st.stop()
+
+# Sidebar info once logged in
+user = st.session_state["auth"]
+st.sidebar.markdown(f"**Signed in as:** {user['username']} ({user.get('role','')})")
+
 # else: continue into the authenticated app (unchanged below)
+
 
 
 def logout_ui():
@@ -595,13 +573,15 @@ if TAB == "Upload":
                 results = train_models_for_all_items(min_samples=10)
             trained = sum(1 for r in results if r.saved)
             st.info(f"Accuracy improved for {trained} items based on your latest upload.")
+            st.markdown("---")
 
         # Always clean up the temp file at the end
         tmp.unlink(missing_ok=True)
 
+
 # ----------------------------- Configure -----------------------------
 elif TAB == "Configure":
-    st.subheader("Real-Time Order Updating System")
+    st.subheader("Real-Time Order Forecasting System")
 
     # ---------- Manual Events (optional) ----------
     st.markdown("### Events (optional)")
@@ -661,8 +641,11 @@ elif TAB == "Configure":
         ).fetchone()
 
     # ---------- Action buttons ----------
-    col1, col2 = st.columns(2)
+    
+    col1, col2, col3 = st.columns(3)
     with col1:
+        col1.metric("Weather rows", w_rows or 0)
+        col1.caption(f"{w_min or 'n/a'} to {w_max or 'n/a'}")
         from app.services.weather_service import GeoPoint, upsert_weather_forecast_to_db
         BAKERY_LOC = GeoPoint(-33.8688, 151.2093)  # TODO: set your bakery lat/lon once
 
@@ -675,6 +658,8 @@ elif TAB == "Configure":
                 st.error(f"Weather update failed: {e}")
 
     with col2:
+        col2.metric("Event rows", e_rows or 0)
+        col2.caption(f"{e_min or 'n/a'} to {e_max or 'n/a'}")
         from app.services.holiday_service import HolidayScope, upsert_holidays_to_db
         if st.button("Holidays: refresh upcoming (next 90 days)"):
             try:
@@ -686,6 +671,11 @@ elif TAB == "Configure":
                 st.rerun()
             except Exception as e:
                 st.error(f"Holiday update failed: {e}")
+    if next_evt:
+        col3.write(f"Next event: {next_evt[0]} - {next_evt[1]} ({next_evt[2] or 'type n/a'})")
+    else:
+        col3.write("Next event: none scheduled")
+    st.markdown("---")
 
 # ----------------------------- Preview -----------------------------
 elif TAB == "Preview":
@@ -724,6 +714,8 @@ elif TAB == "Preview":
             st.session_state["latest_forecast"] = df
             # optional: once used, clear the flag so they must upload again
             st.session_state["uploaded_this_session"] = False
+        st.markdown("---")
+
 
 # ----------------------------- Download -----------------------------
 elif TAB == "Download":
@@ -832,7 +824,8 @@ elif TAB == "Download":
                     with st.spinner("Sending…"):
                         ok = _send_email_with_attachment(to_list, cc_list, bcc_list)
                     if ok:
-                        st.success("Email sent ✅")
+                        st.success("Email sent!")
+            st.markdown("---")
 
 # ----------------------------- History -----------------------------
 elif TAB == "History":
@@ -983,6 +976,8 @@ elif TAB == "Admin":
             results = train_models_for_all_items(min_samples=10)
         trained = sum(1 for r in results if getattr(r, "saved", False))
         st.success(f"Trained/updated models for {trained} items.")
+st.markdown("---")
+        
 
 
 render_footer(logo_path="assets/footer-logo.jpg", college_logo_path="assets/win-logo.png")
